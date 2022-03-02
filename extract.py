@@ -9,17 +9,24 @@ import argparse
 import filetype
 import cvlib as cv
 
+def getFiles(dir):
+  dirFiles = os.listdir(dir)
+  files = list()
+  for file in dirFiles:
+    path = os.path.join(dir, file)
+    if os.path.isdir(path):
+      files = files + getFiles(path)
+    else:
+      files.append(path)
+              
+  return files
+
 def main(args):
   input = args["input"]
   isDirectory = os.path.isdir(input)
   sources = []
   if isDirectory:
-    files = []
-    for path in os.listdir(input):
-      file = os.path.join(input, path)
-      if os.path.isfile(file):
-        files.append(file)
-    sources.extend(files)
+    sources.extend(getFiles(input))
   else:
     sources.append(input)
 
