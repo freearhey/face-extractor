@@ -45,6 +45,7 @@ def main(args):
             "file": frame,
             "source": path,
             "sourceType": "video",
+            "outputDir": os.path.dirname(path.replace(args["input"], args["output"])),
             "filename": os.path.splitext(os.path.basename(path))[0]
           }
           images.append(image)
@@ -57,19 +58,16 @@ def main(args):
         "file": cv2.imread(path),
         "source": path,
         "sourceType": "image",
+        "outputDir": os.path.dirname(path.replace(args["input"], args["output"])),
         "filename": os.path.splitext(os.path.basename(path))[0]
       }
       images.append(image)
 
-  cwd = os.getcwd()
-  outputDir = os.path.join(cwd, args["output"])
-  if not os.path.exists(outputDir):
-    os.makedirs(outputDir)
 
   total = 0
+  cwd = os.getcwd()
   for (i, image) in enumerate(images):
     print("[INFO] processing image {}/{}".format(i + 1, len(images)))
-
     results, confidences = cv.detect_face(image["file"]) 
     
     for (j, bounds) in enumerate(results):
@@ -85,6 +83,10 @@ def main(args):
         outputFilename = '{}_{:04d}_{}.jpg'.format(image["filename"], i, j)
       else:
         outputFilename = '{}_{}.jpg'.format(image["filename"], j)
+
+      outputDir = os.path.join(cwd, image["outputDir"])
+      if not os.path.exists(outputDir):
+        os.makedirs(outputDir)
       outputPath = os.path.join(outputDir, outputFilename)
       cv2.imwrite(outputPath, face)
       total += 1
