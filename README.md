@@ -32,7 +32,7 @@ To run the script you need to pass only the path to the image that need to be pr
 python extract.py --input path/to/image.jpg --output path/to/output_folder
 ```
 
- The video file can also be used as the input:
+The video file can also be used as the input:
 
 ```sh
 python extract.py --input path/to/video.mp4 --output path/to/output_folder
@@ -45,6 +45,13 @@ python extract.py --input path/to/folder_with_images
 ```
 
 By default, the files are saved in the `output` folder.
+
+**Arguments:**
+
+- `-h, --help`: show this help message and exit
+- `-i, --input`: path to input directory or file
+- `-o, --output`: path to output directory of faces
+- `-s, --scale`: scale of detection area (default: 1)
 
 ## Demo
 
