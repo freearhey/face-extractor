@@ -23,6 +23,7 @@ def getFiles(dir):
 
 def main(args):
   input = args["input"]
+  scale = args["scale"] or 1
   isDirectory = os.path.isdir(input)
   sources = []
   if isDirectory:
@@ -72,7 +73,11 @@ def main(args):
     
     for (j, bounds) in enumerate(results):
       (startX, startY, endX, endY) = bounds
-      face = image["file"][startY:endY, startX:endX]
+      bW = endX - startX
+      bH = endY - startY
+      paddingX = int(((bW * float(scale)) - bW) / 2)
+      paddingY = int(((bH * float(scale)) - bH) / 2)
+      face = image["file"][startY-paddingY:endY+paddingY, startX-paddingX:endX+paddingX]
       (fH, fW) = face.shape[:2]
       
       if fW < 10 or fH < 10:
@@ -100,6 +105,7 @@ if __name__ == "__main__":
   # options
   parser.add_argument("-i", "--input", required=True, help="path to input directory or file")
   parser.add_argument("-o", "--output", default="output", help="path to output directory of faces")
+  parser.add_argument("-s", "--scale", default=1, help="scale of detection area (default: 1)")
   
   args = vars(parser.parse_args())
   main(args)
