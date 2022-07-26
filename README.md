@@ -51,7 +51,7 @@ By default, the files are saved in the `output` folder.
 - `-h, --help`: show this help message and exit
 - `-i, --input`: path to input directory or file
 - `-o, --output`: path to output directory of faces
-- `-s, --scale`: scale of detection area (default: 1)
+- `-s, --scale`: adjusts the size of the area around the face (default: 1.0)
 
 ## Demo
 
