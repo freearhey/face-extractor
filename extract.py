@@ -98,7 +98,7 @@ def main(args):
       else:
         outputFilename = '{}_{}.jpg'.format(image["filename"], j)
 
-      outputDir = os.path.join(cwd, image["outputPath"])
+      outputDir = os.path.dirname(os.path.join(cwd, image["outputPath"]))
       if not os.path.exists(outputDir):
         os.makedirs(outputDir)
       outputPath = os.path.join(outputDir, outputFilename)
@@ -113,7 +113,7 @@ if __name__ == "__main__":
   
   # options
   parser.add_argument("-i", "--input", required=True, help="path to input directory or file")
-  parser.add_argument("-o", "--output", default="output", help="path to output directory of faces")
+  parser.add_argument("-o", "--output", default="output/", help="path to output directory of faces")
   parser.add_argument("-s", "--scale", default=1, help="scale of detection area (default: 1)")
   
   args = vars(parser.parse_args())
