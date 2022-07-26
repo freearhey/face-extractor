@@ -78,7 +78,15 @@ def main(args):
       bH = endY - startY
       paddingX = int(((bW * float(scale)) - bW) / 2)
       paddingY = int(((bH * float(scale)) - bH) / 2)
-      face = image["file"][startY-paddingY:endY+paddingY, startX-paddingX:endX+paddingX]
+      newStartX = startY-paddingY
+      newStartX = newStartX if newStartX >= 0 else 0
+      newStartY = endY+paddingY
+      newStartY = newStartY if newStartY >= 0 else 0
+      newEndX = startX-paddingX
+      newEndX = newEndX if newEndX >= 0 else 0
+      newEndY = endX+paddingX
+      newEndY = newEndY if newEndY >= 0 else 0
+      face = image['file'][newStartX:newStartY, newEndX:newEndY]
       (fH, fW) = face.shape[:2]
       
       if fW < 10 or fH < 10:
