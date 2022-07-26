@@ -34,6 +34,8 @@ def main(args):
   images = []
   for path in sources:
     kind = filetype.guess(path)
+    filename = os.path.splitext(os.path.basename(path))[0]
+    outputPath = path.replace(args["input"], args["output"])
     if kind is None:
       continue
     if kind.mime.startswith('video'):
@@ -46,8 +48,8 @@ def main(args):
             "file": frame,
             "source": path,
             "sourceType": "video",
-            "outputDir": os.path.dirname(path.replace(args["input"], args["output"])),
-            "filename": os.path.splitext(os.path.basename(path))[0]
+            "outputPath": outputPath,
+            "filename": filename
           }
           images.append(image)
         else:
@@ -59,11 +61,10 @@ def main(args):
         "file": cv2.imread(path),
         "source": path,
         "sourceType": "image",
-        "outputDir": os.path.dirname(path.replace(args["input"], args["output"])),
-        "filename": os.path.splitext(os.path.basename(path))[0]
+        "outputPath": outputPath,
+        "filename": filename
       }
       images.append(image)
-
 
   total = 0
   cwd = os.getcwd()
@@ -89,7 +90,7 @@ def main(args):
       else:
         outputFilename = '{}_{}.jpg'.format(image["filename"], j)
 
-      outputDir = os.path.join(cwd, image["outputDir"])
+      outputDir = os.path.join(cwd, image["outputPath"])
       if not os.path.exists(outputDir):
         os.makedirs(outputDir)
       outputPath = os.path.join(outputDir, outputFilename)
