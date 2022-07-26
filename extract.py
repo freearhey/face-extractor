@@ -8,6 +8,7 @@ import cv2
 import argparse
 import filetype
 import cvlib as cv
+from PIL import Image
 
 def getFiles(dir):
   dirFiles = os.listdir(dir)
@@ -23,7 +24,7 @@ def getFiles(dir):
 
 def main(args):
   input = args["input"]
-  scale = args["scale"] or 1
+  scale = float(args["scale"])
   isDirectory = os.path.isdir(input)
   sources = []
   if isDirectory:
@@ -71,23 +72,22 @@ def main(args):
   for (i, image) in enumerate(images):
     print("[INFO] processing image {}/{}".format(i + 1, len(images)))
     results, confidences = cv.detect_face(image["file"]) 
+
+    array = cv2.cvtColor(image['file'], cv2.COLOR_BGR2RGB)
+    img = Image.fromarray(array)
     
     for (j, bounds) in enumerate(results):
       (startX, startY, endX, endY) = bounds
       bW = endX - startX
       bH = endY - startY
-      paddingX = int(((bW * float(scale)) - bW) / 2)
-      paddingY = int(((bH * float(scale)) - bH) / 2)
-      newStartX = startY-paddingY
-      newStartX = newStartX if newStartX >= 0 else 0
-      newStartY = endY+paddingY
-      newStartY = newStartY if newStartY >= 0 else 0
-      newEndX = startX-paddingX
-      newEndX = newEndX if newEndX >= 0 else 0
-      newEndY = endX+paddingX
-      newEndY = newEndY if newEndY >= 0 else 0
-      face = image['file'][newStartX:newStartY, newEndX:newEndY]
-      (fH, fW) = face.shape[:2]
+      centerX = startX + (bW / 2.0)
+      centerY = startY + (bH / 2.0)
+      left = centerX - bW / 2.0 * scale
+      top = centerY - bH / 2.0 * scale
+      right = centerX + bW / 2.0 * scale
+      bottom = centerY + bH / 2.0 * scale
+      face = img.crop((left, top, right, bottom))
+      fW, fH = face.size
       
       if fW < 10 or fH < 10:
         continue
@@ -102,7 +102,7 @@ def main(args):
       if not os.path.exists(outputDir):
         os.makedirs(outputDir)
       outputPath = os.path.join(outputDir, outputFilename)
-      cv2.imwrite(outputPath, face)
+      face.save(outputPath)
       total += 1
 
   print("[INFO] found {} face(s)".format(total))
@@ -114,7 +114,7 @@ if __name__ == "__main__":
   # options
   parser.add_argument("-i", "--input", required=True, help="path to input directory or file")
   parser.add_argument("-o", "--output", default="output/", help="path to output directory of faces")
-  parser.add_argument("-s", "--scale", default=1, help="scale of detection area (default: 1)")
+  parser.add_argument("-s", "--scale", default=1.0, help="scale of detection area (default: 1)")
   
   args = vars(parser.parse_args())
   main(args)
