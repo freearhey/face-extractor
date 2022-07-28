@@ -7,8 +7,8 @@ import os
 import cv2
 import argparse
 import filetype
-import cvlib as cv
 from PIL import Image
+from retinaface import RetinaFace
 
 def getFiles(dir):
   dirFiles = os.listdir(dir)
@@ -71,13 +71,17 @@ def main(args):
   cwd = os.getcwd()
   for (i, image) in enumerate(images):
     print("[INFO] processing image {}/{}".format(i + 1, len(images)))
-    results, confidences = cv.detect_face(image["file"]) 
+    results = RetinaFace.detect_faces(image["source"])
 
     array = cv2.cvtColor(image['file'], cv2.COLOR_BGR2RGB)
     img = Image.fromarray(array)
     
-    for (j, bounds) in enumerate(results):
-      (startX, startY, endX, endY) = bounds
+    if type(results) != dict:
+      continue
+
+    j = 1
+    for key, face in results.items():
+      (startX, startY, endX, endY) = face['facial_area']
       bW = endX - startX
       bH = endY - startY
       centerX = startX + (bW / 2.0)
@@ -104,6 +108,7 @@ def main(args):
       outputPath = os.path.join(outputDir, outputFilename)
       face.save(outputPath)
       total += 1
+      j += 1
 
   print("[INFO] found {} face(s)".format(total))
 
