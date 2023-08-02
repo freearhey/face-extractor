@@ -24,6 +24,14 @@ pip install -r requirements.txt
 
 And you're done.
 
+## Demo
+
+In the `examples` folder you can find several images that can be processed using the script, like so:
+
+```sh
+python extract.py --input examples
+```
+
 ## Usage
 
 To run the script you need to pass only the path to the image that need to be processed, as well as the path to the folder where the extracted faces will be saved.
@@ -51,14 +59,12 @@ By default, the files are saved in the `output` folder.
 - `-h, --help`: show this help message and exit
 - `-i, --input`: path to input directory or file
 - `-o, --output`: path to output directory of faces
-- `-s, --scale`: adjusts the size of the area around the face (default: 1.0)
+- `-p, --padding`: padding ratio around the face (default: 1.0)
 
-## Demo
-
-In the `examples` folder you can find several images that can be processed using the script, like so:
+## Test
 
 ```sh
-python extract.py --input examples
+python -m pytest tests/
 ```
 
 ## License
