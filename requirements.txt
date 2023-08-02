@@ -1,4 +1,4 @@
 opencv-python
-tensorflow
-retina-face
+facedetector-py
 filetype
+numpy
