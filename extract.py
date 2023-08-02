@@ -1,55 +1,70 @@
-# USAGE
-# python extract.py --output outputDir/ --input someDir/
-# python extract.py --output outputDir/ --input image.png
-# python extract.py --output outputDir/ --input video.mp4
-
 import os
 import cv2
 import argparse
-import filetype
+import filetype as ft
+import numpy as np
+from pathlib import Path
 from PIL import Image
-from retinaface import RetinaFace
+from facedetector import FaceDetector
 
-def getFiles(dir):
-  dirFiles = os.listdir(dir)
+def getFiles(path):
   files = list()
-  for file in dirFiles:
-    path = os.path.join(dir, file)
-    if os.path.isdir(path):
-      files = files + getFiles(path)
-    else:
-      files.append(path)
+  if os.path.isdir(path):
+    dirFiles = os.listdir(path)
+    for file in dirFiles:
+      filePath = os.path.join(path, file)
+      if os.path.isdir(filePath):
+        files = files + getFiles(filePath)
+      else:
+        kind = ft.guess(filePath)
+        basename = os.path.basename(filePath)
+        files.append({
+          'dir': os.path.abspath(path),
+          'path': filePath,
+          'mime': None if kind == None else kind.mime,
+          'filename': os.path.splitext(basename)[0]
+        })
+  else:
+    kind = ft.guess(path)
+    basename = os.path.basename(path)
+    files.append({
+      'dir': os.path.abspath(os.path.dirname(path)),
+      'path': path,
+      'mime': None if kind == None else kind.mime,
+      'filename': os.path.splitext(basename)[0]
+    })
               
   return files
 
 def main(args):
   input = args["input"]
-  scale = float(args["scale"])
-  isDirectory = os.path.isdir(input)
-  sources = []
-  if isDirectory:
-    sources.extend(getFiles(input))
-  else:
-    sources.append(input)
+  output = args["output"]
+  padding = float(args["padding"])
+
+  files = getFiles(args['input'])
+
+  inputDir = os.path.abspath(os.path.dirname(input)) if os.path.isfile(input) else os.path.abspath(input)
+  outputDir = os.path.abspath(output)
 
   images = []
-  for path in sources:
-    kind = filetype.guess(path)
-    filename = os.path.splitext(os.path.basename(path))[0]
-    outputPath = path.replace(args["input"], args["output"])
-    if kind is None:
+  for file in files:
+    dir, path, mime, filename = file.values()
+
+    targetDir = dir.replace(inputDir, outputDir)
+
+    if mime is None:
       continue
-    if kind.mime.startswith('video'):
+    if mime.startswith('video'):
       print('[INFO] extracting frames from video...')
       video = cv2.VideoCapture(path)
       while True:
         success, frame = video.read()
-        if success:
+        if success and isinstance(frame, np.ndarray):
           image = {
             "file": frame,
-            "source": path,
+            "sourcePath": path,
             "sourceType": "video",
-            "outputPath": outputPath,
+            "targetDir": targetDir,
             "filename": filename
           }
           images.append(image)
@@ -57,56 +72,51 @@ def main(args):
           break
       video.release()
       cv2.destroyAllWindows()
-    elif kind.mime.startswith('image'):
+    elif mime.startswith('image'):
       image = {
         "file": cv2.imread(path),
-        "source": path,
+        "sourcePath": path,
         "sourceType": "image",
-        "outputPath": outputPath,
+        "targetDir": targetDir,
         "filename": filename
       }
       images.append(image)
 
   total = 0
-  cwd = os.getcwd()
   for (i, image) in enumerate(images):
     print("[INFO] processing image {}/{}".format(i + 1, len(images)))
-    results = RetinaFace.detect_faces(image["source"])
+    faces = FaceDetector.detect(image["file"])
 
     array = cv2.cvtColor(image['file'], cv2.COLOR_BGR2RGB)
     img = Image.fromarray(array)
-    
-    if type(results) != dict:
-      continue
 
     j = 1
-    for key, face in results.items():
-      (startX, startY, endX, endY) = face['facial_area']
-      bW = endX - startX
-      bH = endY - startY
-      centerX = startX + (bW / 2.0)
-      centerY = startY + (bH / 2.0)
-      left = centerX - bW / 2.0 * scale
-      top = centerY - bH / 2.0 * scale
-      right = centerX + bW / 2.0 * scale
-      bottom = centerY + bH / 2.0 * scale
-      face = img.crop((left, top, right, bottom))
-      fW, fH = face.size
+    for face in faces:
+      bbox = face['bounding_box']
+      pivotX, pivotY = face['pivot']
       
-      if fW < 10 or fH < 10:
+      if bbox['width'] < 10 or bbox['height'] < 10:
         continue
+      
+      left = pivotX - bbox['width'] / 2.0 * padding
+      top = pivotY - bbox['height'] / 2.0 * padding
+      right = pivotX + bbox['width'] / 2.0 * padding
+      bottom = pivotY + bbox['height'] / 2.0 * padding
+      cropped = img.crop((left, top, right, bottom))
 
-      outputFilename = ''
+      targetDir = image['targetDir']
+      if not os.path.exists(targetDir):
+        os.makedirs(targetDir)
+      
+      targetFilename = ''
       if image["sourceType"] == "video":
-        outputFilename = '{}_{:04d}_{}.jpg'.format(image["filename"], i, j)
+        targetFilename = '{}_{:04d}_{}.jpg'.format(image["filename"], i, j)
       else:
-        outputFilename = '{}_{}.jpg'.format(image["filename"], j)
+        targetFilename = '{}_{}.jpg'.format(image["filename"], j)
 
-      outputDir = os.path.dirname(os.path.join(cwd, image["outputPath"]))
-      if not os.path.exists(outputDir):
-        os.makedirs(outputDir)
-      outputPath = os.path.join(outputDir, outputFilename)
-      face.save(outputPath)
+      outputPath = os.path.join(targetDir, targetFilename)
+
+      cropped.save(outputPath)
       total += 1
       j += 1
 
@@ -118,8 +128,8 @@ if __name__ == "__main__":
   
   # options
   parser.add_argument("-i", "--input", required=True, help="path to input directory or file")
-  parser.add_argument("-o", "--output", default="output/", help="path to output directory of faces")
-  parser.add_argument("-s", "--scale", default=1.0, help="scale of detection area (default: 1)")
+  parser.add_argument("-o", "--output", default="output/", help="path to output directory")
+  parser.add_argument("-p", "--padding", default=1.0, help="padding ratio around the face (default: 1.0)")
   
   args = vars(parser.parse_args())
   main(args)
